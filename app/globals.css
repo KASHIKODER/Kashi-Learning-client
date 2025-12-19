@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+/* ✅ Clean global Tailwind + Dark Mode setup */
+
+/* 🌈 Root color variables */
+:root {
+  --background-color: #f9f9f9; /* light bg */
+  --foreground-color: #111827; /* light text */
+  --card-bg: #ffffff;          /* light card */
+  --primary-color: #0f766e;    /* light primary */
+  --secondary-color: #22d3ee;  /* light secondary */
+  --error-color: #dc2626;      /* light error */
+}
+
+/* 🌙 Dark mode variables */
+html.dark {
+  --background-color: #0a0a0a; /* dark bg */
+  --foreground-color: #f3f4f6; /* dark text */
+  --card-bg: #111827;          /* dark card */
+  --primary-color: #4cceac;    /* dark primary */
+  --secondary-color: #22d3ee;  /* dark secondary */
+  --error-color: #ef4444;      /* dark error */
+}
+
+/* Optional system dark mode fallback */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background-color: #0a0a0a;
+    --foreground-color: #b64ad4;
+    --card-bg: #111827;
+    --primary-color: #4cceac;
+    --secondary-color: #22d3ee;
+    --error-color: #ef4444;
+  }
+}
+
+/* 🧭 Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 🌍 Global page setup */
+body {
+  @apply transition-colors duration-500 ease-in-out;
+  overflow-x: hidden;
+  min-height: 100vh;
+  background-color: var(--background-color);
+  color: var(--foreground-color);
+}
+
+/* 🕶️ Scrollbar hidden across browsers */
+::-webkit-scrollbar {
+  display: none;
+}
+html {
+  scrollbar-width: none; /* Firefox */
+}
+body {
+  -ms-overflow-style: none; /* Edge/IE */
+}
+
+/* 🔢 Input number spinner removal */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* 🌈 Hero banner animation (modern floating + scale + golden glow) */
+.hero_banner_animation {
+  animation: floatScaleGlow 6s ease-in-out infinite;
+  transition: all 0.5s ease-in-out;
+}
+
+@keyframes floatScaleGlow {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 20px 40px rgba(255, 215, 0, 0.3);
+  }
+  50% {
+    transform: translateY(-15px) scale(1.05);
+    box-shadow: 0 25px 60px rgba(255, 215, 0, 0.4);
+  }
+}
+
+/* ✨ Subtle shake animation for errors or attention */
+.shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* ⚙️ Animation definitions */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ping-slow {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes gradient-xy {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* 🌀 Ready-to-use animation utilities */
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+.animate-ping-slow {
+  animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+.animate-gradient-xy {
+  animation: gradient-xy 3s ease infinite;
+  background-size: 400% 400%;
+}
+
+/* 🌫️ Fade-in animation (used for modals, popups, etc.) */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* 🟢 Utility classes for cards/buttons using vars */
+.bg-card { background-color: var(--card-bg); }
+.text-primary { color: var(--primary-color); }
+.text-secondary { color: var(--secondary-color); }
+.text-error { color: var(--error-color); }
+.bg-primary { background-color: var(--primary-color); }
+.bg-secondary { background-color: var(--secondary-color); }
+.bg-error { background-color: var(--error-color); }
