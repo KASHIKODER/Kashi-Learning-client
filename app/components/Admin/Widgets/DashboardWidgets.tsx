@@ -2,13 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Grid,
   Card,
   CardContent,
   Typography,
   Chip,
   CircularProgress,
   alpha,
+  Grid
 } from '@mui/material';
 import {
   TrendingUp,
@@ -332,138 +332,135 @@ const DashboardWidgets = () => {
           </Typography>
         </Box>
 
-        {/* Wrap all content in a fragment */}
-        <>
-          {/* Stats Grid */}
-          <Grid container spacing={3} sx={{ mb: 8 }}>
-            <Grid item xs={12} sm={6} lg={3}>
-              <StatCard
-                title="Total Users"
-                value={stats.totalUsers}
-                icon={Users}
-                growth={stats.userGrowth}
-                color="#3b82f6"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} lg={3}>
-              <StatCard
-                title="Total Courses"
-                value={stats.totalCourses}
-                icon={BookOpen}
-                growth={5.2}
-                color="#10b981"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} lg={3}>
-              <StatCard
-                title="Total Orders"
-                value={stats.totalOrders}
-                icon={ShoppingCart}
-                growth={15.7}
-                color="#f59e0b"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} lg={3}>
-              <StatCard
-                title="Total Revenue"
-                value={`$${stats.totalRevenue.toLocaleString()}`}
-                icon={DollarSign}
-                growth={stats.revenueGrowth}
-                color="#ef4444"
-              />
-            </Grid>
+        {/* Stats Grid */}
+        <Grid container spacing={3} sx={{ mb: 8 }}>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard
+              title="Total Users"
+              value={stats.totalUsers}
+              icon={Users}
+              growth={stats.userGrowth}
+              color="#3b82f6"
+            />
           </Grid>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard
+              title="Total Courses"
+              value={stats.totalCourses}
+              icon={BookOpen}
+              growth={5.2}
+              color="#10b981"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard
+              title="Total Orders"
+              value={stats.totalOrders}
+              icon={ShoppingCart}
+              growth={15.7}
+              color="#f59e0b"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard
+              title="Total Revenue"
+              value={`$${stats.totalRevenue.toLocaleString()}`}
+              icon={DollarSign}
+              growth={stats.revenueGrowth}
+              color="#ef4444"
+            />
+          </Grid>
+        </Grid>
 
-          {/* Main Analytics Section */}
-          <Grid container spacing={4} sx={{ mb: 4 }}>
-            <Grid item xs={12} lg={8}>
-              <AnalyticsCard title="User Analytics" height={600} icon={Users}>
-                <UserAnalytics isDashboard={true} />
-              </AnalyticsCard>
-            </Grid>
-            <Grid item xs={12} lg={4}>
-              <AnalyticsCard title="Performance Metrics" height={600} icon={Activity}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, height: '100%', py: 2 }}>
-                  <Box sx={{ textAlign: 'center', py: 4 }}>
-                    <Box sx={{ position: 'relative', display: 'inline-block' }}>
-                      <CircularProgress
-                        variant="determinate"
-                        value={75}
-                        size={120}
-                        thickness={4}
-                        sx={{
-                          color: '#3b82f6',
-                          mb: 2
-                        }}
-                      />
-                      <Box sx={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        textAlign: 'center'
-                      }}>
-                        <Typography variant="h4" sx={{ fontWeight: '800', color: isDark ? 'white' : '#1f2937' }}>
-                          75%
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <Typography variant="h5" sx={{ fontWeight: '700', mb: 1, color: isDark ? 'white' : '#1f2937' }}>
-                      Performance Score
-                    </Typography>
-                    <Typography variant="body1" sx={{ color: isDark ? 'grey.400' : 'grey.600' }}>
-                      Target achievement rate
-                    </Typography>
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    {[
-                      { label: 'Active Users', value: '1.2K', color: 'primary' as const },
-                      { label: 'Conversion Rate', value: '4.5%', color: 'success' as const },
-                      { label: 'Avg. Order Value', value: '$89', color: 'warning' as const },
-                      { label: 'Customer Satisfaction', value: '94%', color: 'info' as const },
-                      { label: 'Monthly Growth', value: '+12%', color: 'secondary' as const }
-                    ].map((item, index) => (
-                      <Box 
-                        key={index}
-                        sx={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center', 
-                          p: 3, 
-                          background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-                          borderRadius: 3,
-                          border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                            transform: 'translateX(4px)'
-                          }
-                        }}
-                      >
-                        <Typography variant="body1" sx={{ 
-                          fontWeight: '600',
-                          color: isDark ? 'grey.300' : 'grey.700'
-                        }}>
-                          {item.label}
-                        </Typography>
-                        <Chip 
-                          label={item.value} 
-                          size="medium" 
-                          color={item.color}
-                          sx={{ 
-                            fontWeight: '700',
-                            fontSize: '0.9rem'
-                          }} 
-                        />
-                      </Box>
-                    ))}
-                  </Box>
-                </Box>
-              </AnalyticsCard>
-            </Grid>
+        {/* Main Analytics Section */}
+        <Grid container spacing={4} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12, lg: 8 }}>
+            <AnalyticsCard title="User Analytics" height={600} icon={Users}>
+              <UserAnalytics isDashboard={true} />
+            </AnalyticsCard>
           </Grid>
-        </>
+          <Grid size={{ xs: 12, lg: 4 }}>
+            <AnalyticsCard title="Performance Metrics" height={600} icon={Activity}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, height: '100%', py: 2 }}>
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                    <CircularProgress
+                      variant="determinate"
+                      value={75}
+                      size={120}
+                      thickness={4}
+                      sx={{
+                        color: '#3b82f6',
+                        mb: 2
+                      }}
+                    />
+                    <Box sx={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      textAlign: 'center'
+                    }}>
+                      <Typography variant="h4" sx={{ fontWeight: '800', color: isDark ? 'white' : '#1f2937' }}>
+                        75%
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="h5" sx={{ fontWeight: '700', mb: 1, color: isDark ? 'white' : '#1f2937' }}>
+                    Performance Score
+                  </Typography>
+                  <Typography variant="body1" sx={{ color: isDark ? 'grey.400' : 'grey.600' }}>
+                    Target achievement rate
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {[
+                    { label: 'Active Users', value: '1.2K', color: 'primary' as const },
+                    { label: 'Conversion Rate', value: '4.5%', color: 'success' as const },
+                    { label: 'Avg. Order Value', value: '$89', color: 'warning' as const },
+                    { label: 'Customer Satisfaction', value: '94%', color: 'info' as const },
+                    { label: 'Monthly Growth', value: '+12%', color: 'secondary' as const }
+                  ].map((item, index) => (
+                    <Box 
+                      key={index}
+                      sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        p: 3, 
+                        background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                        borderRadius: 3,
+                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                          transform: 'translateX(4px)'
+                        }
+                      }}
+                    >
+                      <Typography variant="body1" sx={{ 
+                        fontWeight: '600',
+                        color: isDark ? 'grey.300' : 'grey.700'
+                      }}>
+                        {item.label}
+                      </Typography>
+                      <Chip 
+                        label={item.value} 
+                        size="medium" 
+                        color={item.color}
+                        sx={{ 
+                          fontWeight: '700',
+                          fontSize: '0.9rem'
+                        }} 
+                      />
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            </AnalyticsCard>
+          </Grid>
+        </Grid>
       </Box>
     </Box>
   );
