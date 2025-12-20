@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import React, { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
-import { useLoadUserQuery } from "@/redux/features/api/apiSlice"; // ✅ Import the hook
+import { useLoadUserQuery } from "@/redux/features/api/apiSlice";
 
 interface ProtectedProps {
   children: React.ReactNode;
@@ -17,10 +17,10 @@ export default function AdminProtected({ children }: ProtectedProps) {
   // ✅ Get FRESH user data from API
   const { data: apiData, isLoading, error, refetch } = useLoadUserQuery(undefined);
   
-  // ✅ Refetch on mount to get latest data
+  // ✅ Refetch on mount to get latest data - FIXED: added refetch dependency
   useEffect(() => {
     refetch();
-  }, []);
+  }, [refetch]); // ✅ Added refetch to dependency array
 
   // ✅ Check loading state
   if (isLoading) {

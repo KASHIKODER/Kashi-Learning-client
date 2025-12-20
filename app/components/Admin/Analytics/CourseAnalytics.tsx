@@ -14,11 +14,23 @@ import Loader from "../../Loader/Loader";
 import { useGetCoursesAnalyticsQuery } from '@/redux/features/analytics/analyticsApi';
 import { styles } from '@/app/styles/style';
 
+// Define proper types
+interface AnalyticsItem {
+  month: string;
+  count: number;
+}
+
+interface ChartDataItem {
+  name: string;
+  uv: number;
+}
+
 const CourseAnalytics = () => {
   const { data, isLoading } = useGetCoursesAnalyticsQuery({});
 
-  const analyticsData =
-    data?.courses?.last12Months?.map((item: any) => ({
+  // Convert data with proper typing
+  const analyticsData: ChartDataItem[] = 
+    data?.courses?.last12Months?.map((item: AnalyticsItem) => ({
       name: item.month,
       uv: item.count,
     })) || [];

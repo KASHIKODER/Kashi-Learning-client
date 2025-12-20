@@ -14,14 +14,26 @@ import Loader from "../../Loader/Loader";
 import { useGetOrdersAnalyticsQuery } from "@/redux/features/analytics/analyticsApi";
 import { styles } from "@/app/styles/style";
 
+// Define proper types
+interface OrderAnalyticsItem {
+  month: string;
+  count: number;
+}
+
+interface ChartDataItem {
+  name: string;
+  uv: number;
+}
+
 const OrdersAnalytics = () => {
   const { data, isLoading } = useGetOrdersAnalyticsQuery({});
-  const analyticsData: any = [];
+  const analyticsData: ChartDataItem[] = [];
 
-  data &&
-    data.orders?.last12Months?.forEach((item: any) => {
+  if (data && data.orders?.last12Months) {
+    data.orders.last12Months.forEach((item: OrderAnalyticsItem) => {
       analyticsData.push({ name: item.month, uv: item.count });
     });
+  }
 
   const minValue = 0;
 

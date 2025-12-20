@@ -84,7 +84,7 @@ const CoursePlayer: FC<Props> = ({ videoUrl, title }) => {
         setIsLoading(true);
         setError('');
         
-        const baseUrl = process.env.NEXT_PUBLIC_SERVER_URI || 'http://localhost:8000/api/v1';
+        const baseUrl = process.env.NEXT_PUBLIC_SERVER_URI || 'https://kashi-learning-server.onrender.com/api/v1';
         const apiUrl = `${baseUrl.replace(/\/$/, '')}/getVdoCipherOTP`;
         
         console.log('📡 Making API call to:', apiUrl);
