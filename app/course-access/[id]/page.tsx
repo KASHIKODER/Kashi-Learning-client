@@ -7,6 +7,32 @@ import { useRouter, useParams } from "next/navigation";
 import Loader from "../../../app/components/Loader/Loader";
 import CourseContent from "@/app/components/Course/CourseContent";
 
+// Define proper types based on your API response
+interface UserCourse {
+  courseId: string;
+  // Add other course properties if needed
+}
+
+interface ApiUser {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar?: {
+    public_id: string;
+    url: string;
+  };
+  courses?: UserCourse[];
+  isVerified?: boolean;
+}
+
+interface LoadUserResponse {
+  success?: boolean;
+  message?: string;
+  activationToken: string;
+  user: ApiUser;
+}
+
 const Page = () => {
   const router = useRouter();
   const params = useParams();
@@ -20,19 +46,21 @@ const Page = () => {
     if (!id) return;        // wait for id
     if (isLoading) return;
 
-    if (error || !data?.user) {
+    // Type guard to check if data has the correct structure
+    const response = data as LoadUserResponse | undefined;
+    if (error || !response?.user) {
       console.log("❌ User not authenticated, redirecting...");
       router.replace("/");
       return;
     }
 
     const isPurchased =
-      data?.user?.courses?.some((c: any) => c.courseId === id) ||
+      response.user.courses?.some((c) => c.courseId === id) ||
       localStorage.getItem(`course_${id}_enrolled`) === "true";
 
     console.log("🔍 Enrollment Check:", {
       courseId: id,
-      userCourses: data.user.courses,
+      userCourses: response.user.courses,
       isPurchased,
       localStorage: localStorage.getItem(`course_${id}_enrolled`)
     });
@@ -55,7 +83,29 @@ const Page = () => {
     );
   }
 
-  return <CourseContent id={id} user={data?.user} />;
+  // Type assertion for the response
+  const response = data as LoadUserResponse;
+  
+  if (!response?.user) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center">
+        <Loader />
+      </div>
+    );
+  }
+
+  // Transform the API user to match CourseContent's IUser interface
+  const userForCourseContent = {
+    _id: response.user._id,
+    name: response.user.name,
+    email: response.user.email,
+    role: response.user.role,
+    avatar: response.user.avatar 
+      ? { url: response.user.avatar.url }
+      : undefined,
+  };
+
+  return <CourseContent id={id} user={userForCourseContent} />;
 };
 
 export default Page;

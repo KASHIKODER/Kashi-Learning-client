@@ -12,7 +12,11 @@ interface IUser {
   name: string;
   email: string;
   role: string;
-  // Add other user properties as needed
+  avatar?: {
+    public_id?: string; // Add this to match API
+    url: string;
+  };
+  isVerified?: boolean; 
 }
 
 interface ILink {
