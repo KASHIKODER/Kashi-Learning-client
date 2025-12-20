@@ -13,7 +13,7 @@ export const reviews = [
         avatar: "https://randomuser.me/api/portraits/men/1.jpg",
         profession: "Student | Cambridge University",
         comment: "This platform transformed my learning journey! The courses are incredibly well-structured and the instructors are top-notch. I landed my dream job after completing the Full Stack Development program.",
-        ratings: 5,
+        rating: 5,
         course: "Full Stack Development"
     },
     {
@@ -21,7 +21,7 @@ export const reviews = [
         avatar: "https://randomuser.me/api/portraits/women/2.jpg",
         profession: "Full Stack Developer | TechCorp",
         comment: "The quality of content exceeded my expectations. The hands-on projects and real-world scenarios helped me transition from beginner to professional developer in just 6 months.",
-        ratings: 5,
+        rating: 5,
         course: "React Masterclass"
     },
     {
@@ -29,7 +29,7 @@ export const reviews = [
         avatar: "https://randomuser.me/api/portraits/men/3.jpg",
         profession: "Data Scientist | AI Solutions",
         comment: "Outstanding learning platform! The AI and Machine Learning courses are comprehensive and up-to-date with industry standards. The community support is incredible.",
-        ratings: 4,
+        rating: 4,
         course: "Machine Learning Pro"
     },
     {
@@ -37,7 +37,7 @@ export const reviews = [
         avatar: "https://randomuser.me/api/portraits/women/4.jpg",
         profession: "UX Designer | DesignStudio",
         comment: "As a designer, I found the UI/UX courses incredibly valuable. The practical assignments and portfolio projects helped me showcase my skills effectively.",
-        ratings: 5,
+        rating: 5,
         course: "UI/UX Design"
     },
     {
@@ -45,7 +45,7 @@ export const reviews = [
         avatar: "https://randomuser.me/api/portraits/men/5.jpg",
         profession: "DevOps Engineer | CloudTech",
         comment: "The DevOps curriculum is perfectly structured. From Docker to Kubernetes, every concept is explained with practical implementations. Highly recommended!",
-        ratings: 4,
+        rating: 4,
         course: "DevOps Engineering"
     },
     {
@@ -53,7 +53,7 @@ export const reviews = [
         avatar: "https://randomuser.me/api/portraits/women/6.jpg",
         profession: "Mobile Developer | AppWorks",
         comment: "The mobile development courses are fantastic! I built my first app within weeks and now I'm working on complex projects. The mentorship program is exceptional.",
-        ratings: 5,
+        rating: 5,
         course: "React Native"
     }
 ];
@@ -64,7 +64,7 @@ const Reviews = () => {
     const filteredReviews = activeFilter === 'all' 
         ? reviews 
         : reviews.filter(review => 
-            activeFilter === '5-stars' ? review.ratings === 5 : review.ratings === 4
+            activeFilter === '5-stars' ? review.rating === 5 : review.ratings === 4
         );
 
     return (
