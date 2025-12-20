@@ -64,7 +64,7 @@ const Reviews = () => {
     const filteredReviews = activeFilter === 'all' 
         ? reviews 
         : reviews.filter(review => 
-            activeFilter === '5-stars' ? review.rating === 5 : review.ratings === 4
+            activeFilter === '5-stars' ? review.rating === 5 : review.rating === 4
         );
 
     return (
