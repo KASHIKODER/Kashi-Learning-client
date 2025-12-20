@@ -15,7 +15,7 @@ export default function AdminProtected({ children }: ProtectedProps) {
   const { user } = useSelector((state: RootState) => state.auth);
   
   // ✅ Get FRESH user data from API
-  const { data: apiData, isLoading, error, refetch } = useLoadUserQuery({});
+  const { data: apiData, isLoading, error, refetch } = useLoadUserQuery(undefined);
   
   // ✅ Refetch on mount to get latest data
   useEffect(() => {
