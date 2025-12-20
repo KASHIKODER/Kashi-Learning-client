@@ -27,17 +27,18 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
 
   // ✅ Image Upload Handler
   const imageHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (reader.readyState === 2 && typeof reader.result === 'string') {
-        updateAvatar(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (reader.readyState === 2 && typeof reader.result === 'string') {
+      // Pass as object with avatar property
+      updateAvatar({ avatar: reader.result });
+    }
   };
+  reader.readAsDataURL(file);
+};
 
   // ✅ useEffect — handle success, error, and re-fetch user data
   useEffect(() => {
