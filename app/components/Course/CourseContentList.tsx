@@ -34,13 +34,23 @@ interface ICourseData {
   title: string;
   description: string;
   videoUrl: string;
-  videoThumbnail: string; // Required based on your Mongoose schema
+  videoThumbnail?: string; // Required based on your Mongoose schema
   videoSection: string;
   videoLength: number;
   videoPlayer: string;
   links: ILink[];
   suggestion: string;
   questions: IComment[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+// Also add IReview interface if not already there:
+interface IReview {
+  _id?: string;
+  user: IUser;
+  rating: number;
+  comment: string;
+  commentReplies: IComment[];
   createdAt?: string;
   updatedAt?: string;
 }

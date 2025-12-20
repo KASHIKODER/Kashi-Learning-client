@@ -5,6 +5,7 @@ import CourseContentMedia from "./CourseContentMedia";
 import CourseContentList from "./CourseContentList";
 import { useGetCourseContentQuery } from "@/redux/features/courses/coursesApi";
 
+
 // Types based on your Mongoose schema
 interface IUser {
   _id: string;
@@ -50,7 +51,6 @@ interface ICourseData {
   links: ILink[];
   suggestion: string;
   questions: IComment[];
-  review?: IReview[];
   createdAt?: string;
   updatedAt?: string;
 }
