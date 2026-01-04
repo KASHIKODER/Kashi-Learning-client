@@ -19,31 +19,30 @@ type Props = {
 
 const ProfileInfo: FC<Props> = ({ avatar, user }) => {
   const [name, setName] = useState(user.name || '');
+  const [imgError, setImgError] = useState(false); // Add error state
 
-  // ✅ RTK Query Hooks
+  // RTK Query Hooks
   const [updateAvatar, { isSuccess, error }] = useUpdateAvatarMutation();
   const [editProfile, { isSuccess: success, error: updateError }] = useEditProfileMutation();
-  const [triggerLoadUser] = useLazyLoadUserQuery(); // ✅ Lazy query returns trigger function
+  const [triggerLoadUser] = useLazyLoadUserQuery();
 
-  // ✅ Image Upload Handler
   const imageHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    if (reader.readyState === 2 && typeof reader.result === 'string') {
-      // Pass as object with avatar property
-      updateAvatar({ avatar: reader.result });
-    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.readyState === 2 && typeof reader.result === 'string') {
+        updateAvatar({ avatar: reader.result });
+        setImgError(false); // Reset error on new upload
+      }
+    };
+    reader.readAsDataURL(file);
   };
-  reader.readAsDataURL(file);
-};
 
-  // ✅ useEffect — handle success, error, and re-fetch user data
   useEffect(() => {
     if (isSuccess || success) {
-      triggerLoadUser(undefined, true); // ✅ call correctly for lazy query
+      triggerLoadUser(undefined, true);
     }
 
     if (error || updateError) {
@@ -56,12 +55,19 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
     }
   }, [isSuccess, error, success, updateError, triggerLoadUser]);
 
-  // ✅ Submit handler for name update
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim() !== '') {
       await editProfile({ name });
     }
+  };
+
+  // Function to get safe avatar URL
+  const getSafeAvatar = () => {
+    if (imgError || !avatar) {
+      return avatarIcon.src;
+    }
+    return avatar;
   };
 
   return (
@@ -74,14 +80,17 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
             <div className="w-full h-full rounded-full bg-white dark:bg-gray-900"></div>
           </div>
 
-          {/* Image */}
+          {/* Image - FIXED HERE */}
           <div className="absolute inset-1 rounded-full overflow-hidden">
             <Image
-              src={avatar || avatarIcon.src}
+              src={getSafeAvatar()}
               alt="avatar"
               fill
               className="object-cover transition-transform duration-500 group-hover:scale-110"
               sizes="160px"
+              unoptimized={avatar.includes('randomuser.me')} // CRITICAL FIX
+              onError={() => setImgError(true)}
+              priority={true} // Helps with loading
             />
           </div>
 
@@ -103,7 +112,7 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
         </div>
       </div>
 
-      {/* Form Section */}
+      {/* Form Section - unchanged */}
       <div className="w-full mt-8 max-w-md p-6 bg-white/20 dark:bg-slate-800/60 backdrop-blur-lg rounded-2xl shadow-lg transition-all duration-300">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>

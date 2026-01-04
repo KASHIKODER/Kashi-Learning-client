@@ -1,7 +1,7 @@
 'use client';
 import Image from "next/image";
 import Link from "next/link";
-import React, { FC, ReactNode } from "react";
+import React, { FC, ReactNode, useState } from "react"; // Add useState
 import { RiLockPasswordLine } from "react-icons/ri";
 import { SiCoursera } from "react-icons/si";
 import { AiOutlineLogout } from "react-icons/ai";
@@ -13,7 +13,7 @@ type MenuItem = {
   id: number;
   label: string;
   icon: ReactNode | string;
-  link?: string; // for Link items like Admin Dashboard
+  link?: string;
 };
 
 type Props = {
@@ -26,16 +26,24 @@ type Props = {
 
 const SideBarProfile: FC<Props> = ({ user, active, avatar, setActive, logOutHandler }) => {
   const isAdmin = user?.role === "admin";
+  const [imgError, setImgError] = useState(false); // Add error state
 
   // Build menu dynamically
   const menuItems: MenuItem[] = [
     { id: 1, label: "My Account", icon: avatar || avatarDefault.src },
     { id: 2, label: "Change Password", icon: <RiLockPasswordLine size={22} /> },
     { id: 3, label: "Enrolled Courses", icon: <SiCoursera size={22} /> },
-    // Insert Admin Dashboard above Log Out if admin
     ...(isAdmin ? [{ id: 5, label: "Admin Dashboard", icon: <MdDashboard size={22} />, link: "/admin" }] : []),
     { id: 4, label: "Log Out", icon: <AiOutlineLogout size={22} /> },
   ];
+
+  // Function to get safe avatar URL
+  const getSafeAvatar = () => {
+    if (imgError || !avatar) {
+      return avatarDefault.src;
+    }
+    return avatar;
+  };
 
   return (
     <div className="w-full h-full flex flex-col items-start py-4">
@@ -64,13 +72,17 @@ const SideBarProfile: FC<Props> = ({ user, active, avatar, setActive, logOutHand
               }`}
           >
             {item.id === 1 && typeof item.icon === "string" ? (
-              <Image
-                src={item.icon}
-                alt="avatar"
-                width={40}
-                height={40}
-                className="w-[40px] h-[40px] rounded-full object-cover border border-white/20"
-              />
+              <div className="relative w-[40px] h-[40px]">
+                <Image
+                  src={getSafeAvatar()}
+                  alt="avatar"
+                  fill
+                  className="rounded-full object-cover border border-white/20"
+                  sizes="40px"
+                  unoptimized={avatar.includes('randomuser.me')} // CRITICAL FIX
+                  onError={() => setImgError(true)}
+                />
+              </div>
             ) : (
               <div className="text-indigo-400 dark:text-indigo-300">{item.icon}</div>
             )}
