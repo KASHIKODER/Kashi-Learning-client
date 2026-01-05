@@ -1,7 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { userLoggedIn, userLoggedOut } from "../auth/authSlice";
 import type { User as AuthUser } from "../auth/authSlice";
-import type { RootState } from "../../store";
 
 interface UserCourse {
   courseId: string;
@@ -29,31 +28,15 @@ export const apiSlice = createApi({
     baseUrl: process.env.NEXT_PUBLIC_SERVER_URI,
     credentials: "include",
     timeout: 30000,
-    prepareHeaders: (headers, { getState }) => {
-      headers.set('Content-Type', 'application/json');
-      headers.set('Accept', 'application/json');
-      
-      const state = getState() as RootState;
-      const token = state.auth.token;
-      
-      let finalToken = token;
-      if (!finalToken && typeof window !== 'undefined') {
-        finalToken = localStorage.getItem('token') || "";
-      }
-      
-      if (finalToken) {
-        headers.set('Authorization', `Bearer ${finalToken}`);
-      }
-      
-      return headers;
-    },
   }),
+  refetchOnMountOrArgChange: false,
   tagTypes: ["Courses", "User"],
   endpoints: (builder) => ({
     refreshToken: builder.query<LoadUserResponse, void>({
       query: () => ({
         url: "refresh",
         method: "GET",
+        credentials: "include" as const,
       }),
     }),
 
@@ -61,7 +44,9 @@ export const apiSlice = createApi({
       query: () => ({
         url: "me",
         method: "GET",
+        credentials: "include" as const,
       }),
+      keepUnusedDataFor: 0,
       async onQueryStarted(arg, { queryFulfilled, dispatch }) {
         try {
           const result = await queryFulfilled;
@@ -75,6 +60,10 @@ export const apiSlice = createApi({
             ...(result.data.user.courses && { courses: result.data.user.courses }),
             avatar: result.data.user.avatar?.url || result.data.user.avatar || undefined,
           };
+          
+          if (result.data.activationToken) {
+            localStorage.setItem('token', result.data.activationToken);
+          }
           
           dispatch(userLoggedIn({
             accessToken: result.data.activationToken,

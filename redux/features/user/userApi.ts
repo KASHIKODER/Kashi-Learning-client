@@ -1,12 +1,12 @@
 import { apiSlice } from "../api/apiSlice";
 
-// Define types
 interface User {
   _id: string;
   name: string;
   email: string;
   role: string;
   avatar?: {
+    public_id: string;
     url: string;
   };
   createdAt?: string;
@@ -32,55 +32,52 @@ interface ApiResponse<T = unknown> {
 
 export const userApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    // ✅ Update user avatar
-    updateAvatar: builder.mutation<ApiResponse, { avatar: string | File }>({
-      query: (avatar) => ({
+    updateAvatar: builder.mutation<ApiResponse, { avatar: string }>({
+      query: ({ avatar }) => ({
         url: "update-user-avatar",
         method: "PUT",
-        body: { avatar },
+        body: JSON.stringify({ avatar }),
         credentials: "include" as const,
       }),
+      invalidatesTags: ['User'],
     }),
 
-    // ✅ Edit profile
     editProfile: builder.mutation<ApiResponse, { name: string }>({
       query: ({ name }) => ({
         url: "update-user-info",
         method: "PUT",
-        body: { name },
+        body: JSON.stringify({ name }),
         credentials: "include" as const,
       }),
+      invalidatesTags: ['User'],
     }),
 
-    // ✅ Update password
     updatePassword: builder.mutation<ApiResponse, { oldPassword: string; newPassword: string }>({
       query: ({ oldPassword, newPassword }) => ({
         url: "update-user-password",
         method: "PUT",
-        body: { oldPassword, newPassword },
+        body: JSON.stringify({ oldPassword, newPassword }),
         credentials: "include" as const,
       }),
     }),
 
-    // ✅ Get all users
     getAllUsers: builder.query<ApiResponse<User[]>, void>({
       query: () => ({
         url: "get-users",
         method: "GET",
         credentials: "include" as const,
       }),
-      providesTags: ['User'], // Simplified
+      providesTags: ['User'],
     }),
 
-    // ✅ Update user role (Admin only)
     updateUserRole: builder.mutation<UpdateUserRoleResponse, { userId: string; role: string }>({
       query: ({ userId, role }) => ({
         url: "update-user",
         method: "PUT",
-        body: { userId, role },
+        body: JSON.stringify({ userId, role }),
         credentials: "include" as const,
       }),
-      invalidatesTags: ['User'], // Simplified
+      invalidatesTags: ['User'],
       transformResponse: (response: ApiResponse<User>): UpdateUserRoleResponse => {
         return {
           success: response.success || true,
@@ -92,14 +89,13 @@ export const userApi = apiSlice.injectEndpoints({
       },
     }),
 
-    // ✅ Delete user (Admin only)
     deleteUser: builder.mutation<ApiResponse, string>({
       query: (id: string) => ({
         url: `delete-user/${id}`,
         method: "DELETE",
         credentials: "include" as const,
       }),
-      invalidatesTags: ['User'], // Simplified
+      invalidatesTags: ['User'],
     }),
   }),
 });
