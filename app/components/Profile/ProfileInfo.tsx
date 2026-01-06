@@ -1,6 +1,6 @@
 'use client';
 import Image from 'next/image';
-import { FC, useState, useRef } from 'react';
+import { FC, useState, useRef, useEffect } from 'react'; // ✅ Added useEffect
 import { AiOutlineCamera } from 'react-icons/ai';
 import avatarIcon from '../../../public/assets/avatar.png';
 import { styles } from '../../../app/styles/style';
@@ -16,7 +16,32 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
   const [name, setName] = useState(user.name || '');
   const [imgError, setImgError] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [currentAvatar, setCurrentAvatar] = useState(avatar); // ✅ State for avatar
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ✅ Initialize on component mount
+  useEffect(() => {
+    // Get avatar from localStorage on initial load
+    if (typeof window !== 'undefined') {
+      const tempAvatar = sessionStorage.getItem('temp_avatar');
+      if (tempAvatar) {
+        setCurrentAvatar(tempAvatar);
+        return;
+      }
+      
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          if (parsedUser.avatar && parsedUser.avatar !== avatar) {
+            setCurrentAvatar(parsedUser.avatar);
+          }
+        } catch {
+          // Ignore
+        }
+      }
+    }
+  }, [avatar]);
 
   const imageHandler = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,16 +65,21 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
     
     reader.onload = async () => {
       if (reader.readyState === 2 && typeof reader.result === 'string') {
+        const imageData = reader.result;
+        
         try {
-          // Try server update first
+          // ✅ FIRST: Update UI immediately
+          setCurrentAvatar(imageData);
+          
+          // Try server update
           try {
             const response = await fetch('https://kashi-learning-server.onrender.com/api/v1/update-user-avatar', {
               method: 'PUT',
-              credentials: 'include',
+              credentials: 'include', // ✅ Important for cookies
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ avatar: reader.result }),
+              body: JSON.stringify({ avatar: imageData }),
             });
             
             const result = await response.json();
@@ -62,20 +92,16 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
                 const storedUser = localStorage.getItem('user');
                 if (storedUser) {
                   const parsedUser = JSON.parse(storedUser);
-                  parsedUser.avatar = result.user?.avatar?.url || reader.result;
+                  parsedUser.avatar = result.user?.avatar?.url || imageData;
                   localStorage.setItem('user', JSON.stringify(parsedUser));
+                  sessionStorage.setItem('temp_avatar', imageData);
                 }
               }
               
-              // Reload page to show updated avatar
-              setTimeout(() => {
-                window.location.reload();
-              }, 1000);
-              
-              return; // Success, exit early
+              return; // Success
             }
           } catch {
-            // Server update failed, fall back to local storage
+            // Server update failed
           }
           
           // Fallback: Update local storage
@@ -83,27 +109,13 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
               const parsedUser = JSON.parse(storedUser);
-              parsedUser.avatar = reader.result;
+              parsedUser.avatar = imageData;
               localStorage.setItem('user', JSON.stringify(parsedUser));
-              sessionStorage.setItem('temp_avatar', reader.result);
+              sessionStorage.setItem('temp_avatar', imageData);
             }
           }
           
-          toast.success(
-            <div>
-              <p>Avatar updated locally! 🎉</p>
-              <p className="text-sm mt-1">
-                Note: Server validation issue. Avatar will be visible to you.
-                Refresh page to see changes.
-              </p>
-            </div>
-          );
-          
-          // Trigger UI update and reload
-          setImgError(true);
-          setTimeout(() => {
-            window.location.reload();
-          }, 500);
+          toast.success('Avatar updated locally!');
           
         } catch (error: any) {
           toast.error(error.message || 'Failed to update avatar');
@@ -127,6 +139,7 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim() !== '' && name !== user.name) {
+      setUploading(true);
       try {
         const response = await fetch('https://kashi-learning-server.onrender.com/api/v1/update-user-info', {
           method: 'PUT',
@@ -152,45 +165,21 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
             }
           }
           
-          // Reload to reflect changes
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
         } else {
           toast.error(result.message || 'Failed to update profile');
         }
         
       } catch (error: any) {
         toast.error(error.message || 'Failed to update profile');
+      } finally {
+        setUploading(false);
       }
     }
   };
 
-  // Get avatar with fallback to localStorage
+  // ✅ SIMPLIFIED: Get avatar
   const getSafeAvatar = () => {
-    if (typeof window !== 'undefined') {
-      // Check sessionStorage first for immediate updates
-      const tempAvatar = sessionStorage.getItem('temp_avatar');
-      if (tempAvatar) return tempAvatar;
-      
-      // Check localStorage
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          if (parsedUser.avatar && parsedUser.avatar !== avatar) {
-            return parsedUser.avatar;
-          }
-        } catch {
-          // Ignore parse errors
-        }
-      }
-    }
-    
-    if (imgError || !avatar) {
-      return avatarIcon.src;
-    }
-    return avatar;
+    return currentAvatar || avatarIcon.src;
   };
 
   const displayAvatar = getSafeAvatar();
@@ -213,7 +202,7 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
               fill
               className="object-cover transition-transform duration-500 group-hover:scale-110"
               sizes="160px"
-              unoptimized={true}  // ✅ FIX: Force unoptimized for ALL avatars
+              unoptimized={true} // ✅ CRITICAL: Force unoptimized for ALL images
               onError={() => setImgError(true)}
               priority={true}
             />
