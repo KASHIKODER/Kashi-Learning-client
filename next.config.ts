@@ -7,34 +7,36 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  
+  // ✅ COMPLETE IMAGE FIX
   images: {
-    // ✅ For Vercel: Disable ALL optimization temporarily
     unoptimized: true,
-    
-    // ✅ Add domains if needed
-    domains: ['randomuser.me'],
-    
-    // ✅ Add remote patterns
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'randomuser.me',
-        pathname: '/api/portraits/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**', // Allow all for now
-      },
-    ],
+    // Remove ALL remotePatterns - use unoptimized instead
   },
   
-  // ✅ Remove headers - they might cause issues on Vercel
-  // async headers() {
-  //   return [];
-  // },
+  // ✅ DISABLE RSC PREFETCHING
+  experimental: {
+    // Turn off RSC streaming/prefetching
+    serverActions: {
+      bodySizeLimit: '2mb'
+    },
+    // Disable automatic prefetching
+    scrollRestoration: false,
+    // Reduce bundle size
+    optimizeCss: false,
+    // Disable RSC prefetch
+    staleTimes: {
+      dynamic: 0,
+      static: 0,
+    }
+  },
   
-  // ✅ Add output: 'standalone' for better Vercel compatibility
-  output: 'standalone',
+  // ✅ Disable all prefetching
+  onDemandEntries: {
+    // Keep pages in memory for less time
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
 };
 
 export default nextConfig;
