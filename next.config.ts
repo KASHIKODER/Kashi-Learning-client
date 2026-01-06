@@ -8,34 +8,50 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   
-  // ✅ COMPLETE IMAGE FIX
+  // ✅ FIX: Add ALL domains and COMPLETE unoptimized settings
   images: {
     unoptimized: true,
-    // Remove ALL remotePatterns - use unoptimized instead
+    // Add ALL domains that might have images
+    domains: [
+      'randomuser.me',
+      'images.unsplash.com',
+      'picsum.photos',
+      'via.placeholder.com',
+      'i.imgur.com',
+      'localhost',
+      'kashi-learning-client.vercel.app'
+    ],
+    // Also add remotePatterns for wildcard
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**', // Allow ALL domains
+      },
+      {
+        protocol: 'http',
+        hostname: '**', // Allow ALL domains
+      },
+    ],
   },
   
-  // ✅ DISABLE RSC PREFETCHING
-  experimental: {
-    // Turn off RSC streaming/prefetching
-    serverActions: {
-      bodySizeLimit: '2mb'
-    },
-    // Disable automatic prefetching
-    scrollRestoration: false,
-    // Reduce bundle size
-    optimizeCss: false,
-    // Disable RSC prefetch
-    staleTimes: {
-      dynamic: 0,
-      static: 0,
-    }
-  },
+  // Remove experimental settings that might interfere
+  // experimental: {},
   
-  // ✅ Disable all prefetching
-  onDemandEntries: {
-    // Keep pages in memory for less time
-    maxInactiveAge: 25 * 1000,
-    pagesBufferLength: 2,
+  // Add this to force disable image optimization
+  webpack: (config, { isServer }) => {
+    config.module.rules.push({
+      test: /\.(png|jpe?g|gif|webp|avif)$/i,
+      use: [
+        {
+          loader: 'file-loader',
+          options: {
+            publicPath: '/_next',
+            name: 'static/media/[name].[hash].[ext]',
+          },
+        },
+      ],
+    });
+    return config;
   },
 };
 

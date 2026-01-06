@@ -12,7 +12,7 @@ import Login from "../components/Auth/Login";
 import SignUp from "../components/Auth/SignUp";
 import Verification from "../components/Auth/Verification";
 import { useSelector } from "react-redux";
-import Image from "next/image";
+// REMOVE THIS: import Image from "next/image";
 import avatar from "../../public/assets/avatar.png";
 import { RootState } from "@/redux/store";
 import { useSession } from "next-auth/react";
@@ -31,6 +31,7 @@ const HeaderComponent: FC<Props> = ({ activeItem, setOpen, route, open, setRoute
   const [active, setActive] = useState(false);
   const [openSidebar, setOpenSidebar] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [imgError, setImgError] = useState(false); // Add this for image error handling
 
   const { user } = useSelector((state: RootState) => state.auth);
   const { data: sessionData } = useSession();
@@ -108,13 +109,15 @@ const HeaderComponent: FC<Props> = ({ activeItem, setOpen, route, open, setRoute
 
             {user ? (
               <Link href="/profile">
-                <Image
-                  src={typeof user.avatar === "string" ? user.avatar : user.avatar?.url || avatar.src}
+                <img
+                  src={imgError ? avatar.src : (typeof user.avatar === "string" ? user.avatar : user.avatar?.url || avatar.src)}
                   alt="User Avatar"
-                  width={30}
-                  height={30}
+                  width="30"
+                  height="30"
                   className="w-[30px] h-[30px] rounded-full cursor-pointer"
                   style={{ border: activeItem === 5 ? "2px solid #ffc107" : "none" }}
+                  onError={() => setImgError(true)}
+                  loading="lazy"
                 />
               </Link>
             ) : (
