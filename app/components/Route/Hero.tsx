@@ -41,6 +41,7 @@ const Hero: FC<Props> = () => {
             alt="Learning illustration"
             fill
             className="object-cover rounded-full"
+            sizes="(max-width: 768px) 260px, (max-width: 1024px) 340px, (max-width: 1280px) 400px, 460px"
             priority
           />
         </div>
@@ -93,6 +94,7 @@ const Hero: FC<Props> = () => {
                 alt={`user${num}`}
                 fill
                 className="rounded-full object-cover"
+                sizes="45px"
               />
             </div>
           ))}
