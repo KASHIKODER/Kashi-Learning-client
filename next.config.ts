@@ -8,40 +8,33 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    // ✅ DISABLE ALL IMAGE OPTIMIZATION
+    // ✅ For Vercel: Disable ALL optimization temporarily
     unoptimized: true,
     
-    // ✅ Remove remotePatterns since we're disabling optimization
-    // remotePatterns: [] 
-  },
-  // ✅ Disable prefetching to reduce unnecessary API calls
-  experimental: {
-    // Disable these to reduce errors
-    workerThreads: false,
-    cpus: 1,
-  },
-  // ✅ Add these headers to prevent CORS issues
-  async headers() {
-    return [
+    // ✅ Add domains if needed
+    domains: ['randomuser.me'],
+    
+    // ✅ Add remote patterns
+    remotePatterns: [
       {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Access-Control-Allow-Credentials',
-            value: 'true',
-          },
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: 'https://kashi-learning-server.onrender.com',
-          },
-          {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
-          },
-        ],
+        protocol: 'https',
+        hostname: 'randomuser.me',
+        pathname: '/api/portraits/**',
       },
-    ]
+      {
+        protocol: 'https',
+        hostname: '**', // Allow all for now
+      },
+    ],
   },
+  
+  // ✅ Remove headers - they might cause issues on Vercel
+  // async headers() {
+  //   return [];
+  // },
+  
+  // ✅ Add output: 'standalone' for better Vercel compatibility
+  output: 'standalone',
 };
 
 export default nextConfig;
