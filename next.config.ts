@@ -34,11 +34,17 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Add minimumCacheTTL to cache optimized images longer
+    minimumCacheTTL: 60,
+    // Disable optimization for certain domains (alternative approach)
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  // Force disable experimental features that might cause issues
-  experimental: {
-    // Remove any problematic experimental features
-  },
+  // Add this to handle trailing slashes
+  trailingSlash: false,
+  // Add this for better production builds
+  output: 'standalone',
 };
 
 export default nextConfig;

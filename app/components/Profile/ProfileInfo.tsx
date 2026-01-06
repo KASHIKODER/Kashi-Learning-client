@@ -166,6 +166,13 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
     }
   };
 
+  // Helper function to check if image should be unoptimized
+  const shouldUseUnoptimized = (avatarUrl: string) => {
+    return avatarUrl.startsWith('data:image/') || 
+           avatarUrl.includes('randomuser.me') ||
+           avatarUrl.includes('cloudinary.com');
+  };
+
   // Get avatar with fallback to localStorage
   const getSafeAvatar = () => {
     if (typeof window !== 'undefined') {
@@ -187,11 +194,18 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
       }
     }
     
+    // If we have an external URL that might fail optimization, return it
+    if (avatar && (avatar.includes('randomuser.me') || avatar.includes('cloudinary.com'))) {
+      return avatar;
+    }
+    
     if (imgError || !avatar) {
       return avatarIcon.src;
     }
     return avatar;
   };
+
+  const displayAvatar = getSafeAvatar();
 
   return (
     <div className="flex flex-col items-center w-full">
@@ -206,12 +220,12 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
           {/* Image */}
           <div className="absolute inset-1 rounded-full overflow-hidden">
             <Image
-              src={getSafeAvatar()}
+              src={displayAvatar}
               alt="avatar"
               fill
               className="object-cover transition-transform duration-500 group-hover:scale-110"
               sizes="160px"
-              unoptimized={getSafeAvatar().startsWith('data:image/')}
+              unoptimized={shouldUseUnoptimized(displayAvatar)}
               onError={() => setImgError(true)}
               priority={true}
             />
