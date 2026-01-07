@@ -8,7 +8,7 @@ import { Providers } from "./Provider";
 import { SessionProvider } from "next-auth/react";
 import React, { FC, useEffect, useState } from "react";
 import Loader from "./components/Loader/Loader";
-import Script from "next/script"; 
+import Script from "next/script";
 import { useLoadUserQuery } from "@/redux/features/api/apiSlice";
 
 const poppins = Poppins({
@@ -64,7 +64,7 @@ const Custom: FC<{ children: React.ReactNode }> = ({ children }) => {
     refetchOnMountOrArgChange: false,
     refetchOnFocus: false,
     refetchOnReconnect: false,
-  }); 
+  });
 
   useEffect(() => {
     if (hasToken && isLoading) {
