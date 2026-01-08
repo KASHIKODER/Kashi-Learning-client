@@ -97,13 +97,8 @@ export const authApi = apiSlice.injectEndpoints({
         credentials: "include" as const,
       }),
       async onQueryStarted(arg, { queryFulfilled, dispatch }) {
-        console.log("🔍 SOCIAL AUTH DEBUG:");
-        console.log("Request URL:", `${process.env.NEXT_PUBLIC_SERVER_URI}social-auth`);
-        console.log("Request Data:", { email: arg.email, name: arg.name, avatar: arg.avatar });
-        
         try {
           const result = await queryFulfilled;
-          console.log("✅ Social auth success response:", result.data);
           
           dispatch(
             userLoggedIn({
@@ -144,11 +139,9 @@ export const authApi = apiSlice.injectEndpoints({
               } 
               else if (rtkError.error?.status === 404) {
                 message = "Endpoint not found (404)";
-                console.error("⚠️ Endpoint /social-auth doesn't exist on backend");
               }
               else if (rtkError.error?.status === 500) {
                 message = "Server error (500)";
-                console.error("⚠️ Backend server error");
               }
               else if (rtkError.error?.data?.message) {
                 message = rtkError.error.data.message;
