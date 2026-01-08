@@ -22,14 +22,18 @@ interface LoadUserResponse {
   user: ApiUser;
 }
 
+// ✅ Simple base query without custom timeout
+const baseQuery = fetchBaseQuery({
+  baseUrl: process.env.NEXT_PUBLIC_SERVER_URI,
+  credentials: "include",
+  // Note: fetchBaseQuery doesn't have a timeout option
+  // Timeout is handled by browser/network by default
+});
+
 export const apiSlice = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_SERVER_URI,
-    credentials: "include",
-    timeout: 30000,
-  }),
-  refetchOnMountOrArgChange: false,
+  baseQuery: baseQuery,
+  refetchOnMountOrArgChange: true, // Changed to true for better UX
   tagTypes: ["Courses", "User"],
   endpoints: (builder) => ({
     refreshToken: builder.query<LoadUserResponse, void>({
@@ -46,7 +50,6 @@ export const apiSlice = createApi({
         method: "GET",
         credentials: "include" as const,
       }),
-      keepUnusedDataFor: 0,
       async onQueryStarted(arg, { queryFulfilled, dispatch }) {
         try {
           const result = await queryFulfilled;
@@ -89,6 +92,7 @@ export const apiSlice = createApi({
           }
         }
       },
+      keepUnusedDataFor: 60, // Keep data for 60 seconds
     }),
   }),
 });
@@ -96,5 +100,4 @@ export const apiSlice = createApi({
 export const {
   useRefreshTokenQuery,
   useLoadUserQuery,
-  useLazyLoadUserQuery,
 } = apiSlice;

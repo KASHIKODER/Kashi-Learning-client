@@ -7,10 +7,10 @@ import {
   useUpdateNotificationStatusMutation,
 } from "@/redux/features/notifications/notificationsApi";
 import { IoMdNotificationsOutline } from "react-icons/io";
-import socketIO from "socket.io-client";
 
-const ENDPOINT = process.env.NEXT_PUBLIC_SOCKET_SERVER_URI || "";
-const socketId = socketIO(ENDPOINT, { transports: ["websocket"] });
+// Remove socket.io import and initialization from here
+// const ENDPOINT = process.env.NEXT_PUBLIC_SOCKET_SERVER_URI || "";
+// const socketId = socketIO(ENDPOINT, { transports: ["websocket"] });
 
 // Define proper TypeScript interfaces
 interface Notification {
@@ -92,18 +92,45 @@ const DashboardHeader: FC<DashboardHeaderProps> = ({ open, setOpen }) => {
     }
   }, [data, isSuccess, refetch]);
 
-  // Handle socket notification
+  // ✅ FIXED: Remove socket.io connection or make it conditional
+  // Only connect if not on Vercel
   useEffect(() => {
-    const handleNewNotification = () => {
-      refetch();
-      playNotificationSound();
-    };
+    // Don't initialize socket on Vercel
+    if (typeof window !== 'undefined' && 
+        window.location.hostname.includes('vercel.app')) {
+      return; // Skip socket initialization on Vercel
+    }
 
-    socketId.on("newNotification", handleNewNotification);
+    // Only import and use socket.io if needed
+    const ENDPOINT = process.env.NEXT_PUBLIC_SOCKET_SERVER_URI || "";
+    
+    if (!ENDPOINT) {
+      console.warn("Socket server URI not configured");
+      return;
+    }
 
-    return () => {
-      socketId.off("newNotification", handleNewNotification);
-    };
+    // Dynamic import to avoid SSR issues
+    import("socket.io-client").then((module) => {
+      const socketIO = module.default;
+      const socketId = socketIO(ENDPOINT, { 
+        transports: ["polling"], // Use polling instead of websocket
+        upgrade: false // Disable websocket upgrade
+      });
+
+      const handleNewNotification = () => {
+        refetch();
+        playNotificationSound();
+      };
+
+      socketId.on("newNotification", handleNewNotification);
+
+      return () => {
+        socketId.off("newNotification", handleNewNotification);
+        socketId.disconnect();
+      };
+    }).catch((error) => {
+      console.warn("Socket.io not available:", error);
+    });
   }, [refetch]);
 
   const handleNotificationStatusChange = async (id: string) => {

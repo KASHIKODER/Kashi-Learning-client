@@ -48,7 +48,7 @@ const Signup: FC<Props> = ({ setOpen, setRoute }) => {
     validationSchema: schema,
     onSubmit: async (values) => {
       try {
-        await register(values).unwrap(); // unwrap for error handling
+        await register(values).unwrap(); 
       } catch (err) {
         console.error('Registration failed:', err);
       }
