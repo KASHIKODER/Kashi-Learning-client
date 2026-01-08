@@ -16,8 +16,8 @@ import { useSelector } from "react-redux";
 import avatar from "../../public/assets/avatar.png";
 import { RootState } from "@/redux/store";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { useLogOutMutation, useSocialAuthMutation } from "@/redux/features/auth/authApi";
-import { toast } from "react-hot-toast";
 
 type Props = {
   open: boolean;
@@ -81,11 +81,10 @@ const HeaderComponent: FC<Props> = ({ activeItem, setOpen, route, open, setRoute
   return (
     <header className="fixed top-0 left-0 w-full z-[80]">
       <div
-        className={`transition-all duration-500 ${
-          active
+        className={`transition-all duration-500 ${active
             ? "bg-white dark:bg-[#0f172a] shadow-md border-b border-gray-200 dark:border-gray-700"
             : "bg-white dark:bg-[#0f172a] border-b border-transparent"
-        }`}
+          }`}
       >
         <div className="w-[95%] md:w-[92%] m-auto h-[80px] flex items-center justify-between px-3">
           <Link
@@ -109,15 +108,15 @@ const HeaderComponent: FC<Props> = ({ activeItem, setOpen, route, open, setRoute
 
             {user ? (
               <Link href="/profile">
-                <img
-                  src={imgError ? avatar.src : (typeof user.avatar === "string" ? user.avatar : user.avatar?.url || avatar.src)}
+                <Image
+                  src={imgError ? avatar : (typeof user.avatar === "string" ? user.avatar : user.avatar?.url || avatar)}
                   alt="User Avatar"
-                  width="30"
-                  height="30"
-                  className="w-[30px] h-[30px] rounded-full cursor-pointer"
+                  width={30}
+                  height={30}
+                  className="w-[30px] h-[30px] rounded-full cursor-pointer object-cover"
                   style={{ border: activeItem === 5 ? "2px solid #ffc107" : "none" }}
                   onError={() => setImgError(true)}
-                  loading="lazy"
+                  priority={false}
                 />
               </Link>
             ) : (

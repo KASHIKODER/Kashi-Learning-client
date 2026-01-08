@@ -7,51 +7,40 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  
-  // ✅ FIX: Add ALL domains and COMPLETE unoptimized settings
   images: {
+    // ✅ DISABLE ALL IMAGE OPTIMIZATION
     unoptimized: true,
-    // Add ALL domains that might have images
-    domains: [
-      'randomuser.me',
-      'images.unsplash.com',
-      'picsum.photos',
-      'via.placeholder.com',
-      'i.imgur.com',
-      'localhost',
-      'kashi-learning-client.vercel.app'
-    ],
-    // Also add remotePatterns for wildcard
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**', // Allow ALL domains
-      },
-      {
-        protocol: 'http',
-        hostname: '**', // Allow ALL domains
-      },
-    ],
+    
+    // ✅ Remove remotePatterns since we're disabling optimization
+    // remotePatterns: [] 
   },
-  
-  // Remove experimental settings that might interfere
-  // experimental: {},
-  
-  // Add this to force disable image optimization
-  webpack: (config, { isServer }) => {
-    config.module.rules.push({
-      test: /\.(png|jpe?g|gif|webp|avif)$/i,
-      use: [
-        {
-          loader: 'file-loader',
-          options: {
-            publicPath: '/_next',
-            name: 'static/media/[name].[hash].[ext]',
+  // ✅ Disable prefetching to reduce unnecessary API calls
+  experimental: {
+    // Disable these to reduce errors
+    workerThreads: false,
+    cpus: 1,
+  },
+  // ✅ Add these headers to prevent CORS issues
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true',
           },
-        },
-      ],
-    });
-    return config;
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: 'https://kashi-learning-server.onrender.com',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
+          },
+        ],
+      },
+    ]
   },
 };
 
