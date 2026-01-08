@@ -130,12 +130,6 @@ export const authApi = apiSlice.injectEndpoints({
               
               if (rtkError.error?.name === "FETCH_ERROR") {
                 message = "Network error - cannot reach server";
-                console.error("⚠️ Network Issue Detected");
-                console.error("Check:", {
-                  serverUrl: process.env.NEXT_PUBLIC_SERVER_URI,
-                  fullUrl: `${process.env.NEXT_PUBLIC_SERVER_URI}social-auth`,
-                  suggestion: "Try removing trailing slash from URL"
-                });
               } 
               else if (rtkError.error?.status === 404) {
                 message = "Endpoint not found (404)";
