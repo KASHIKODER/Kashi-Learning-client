@@ -1,11 +1,14 @@
 'use client';
 import Image from 'next/image';
-import { FC, useState, useRef, useEffect } from 'react'; // ✅ Added useEffect
+import { FC, useState, useRef, useEffect } from 'react';
 import { AiOutlineCamera } from 'react-icons/ai';
 import avatarIcon from '../../../public/assets/avatar.png';
 import { styles } from '../../../app/styles/style';
 import { UserType } from './Profile';
 import toast from 'react-hot-toast';
+import { useUpdateAvatarMutation, useEditProfileMutation } from '@/redux/features/user/userApi';
+import { useDispatch } from 'react-redux';
+import { updateUser } from '@/redux/features/auth/authSlice';
 
 type Props = {
   avatar: string;
@@ -14,14 +17,18 @@ type Props = {
 
 const ProfileInfo: FC<Props> = ({ avatar, user }) => {
   const [name, setName] = useState(user.name || '');
-  const [imgError, setImgError] = useState(false);
+  const [imgError, setImgError] = useState(false); // ✅ Fix: useState returns [value, setter]
   const [uploading, setUploading] = useState(false);
-  const [currentAvatar, setCurrentAvatar] = useState(avatar); // ✅ State for avatar
+  const [currentAvatar, setCurrentAvatar] = useState(avatar);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dispatch = useDispatch();
+
+  // ✅ Use your existing mutations
+  const [updateAvatar] = useUpdateAvatarMutation();
+  const [editProfile] = useEditProfileMutation();
 
   // ✅ Initialize on component mount
   useEffect(() => {
-    // Get avatar from localStorage on initial load
     if (typeof window !== 'undefined') {
       const tempAvatar = sessionStorage.getItem('temp_avatar');
       if (tempAvatar) {
@@ -47,7 +54,6 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file
     if (file.size > 2 * 1024 * 1024) {
       toast.error('File size should be less than 2MB');
       return;
@@ -59,7 +65,7 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
     }
 
     setUploading(true);
-    setImgError(false);
+    setImgError(false); // ✅ Fix: Use the setter function
     
     const reader = new FileReader();
     
@@ -68,43 +74,15 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
         const imageData = reader.result;
         
         try {
-          // ✅ FIRST: Update UI immediately
+          // ✅ 1. Update UI immediately
           setCurrentAvatar(imageData);
           
-          // Try server update
-          try {
-            const response = await fetch('https://kashi-learning-server.onrender.com/api/v1/update-user-avatar', {
-              method: 'PUT',
-              credentials: 'include', // ✅ Important for cookies
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ avatar: imageData }),
-            });
-            
-            const result = await response.json();
-            
-            if (response.ok && result.success) {
-              toast.success('Avatar updated successfully!');
-              
-              // Update localStorage
-              if (typeof window !== 'undefined') {
-                const storedUser = localStorage.getItem('user');
-                if (storedUser) {
-                  const parsedUser = JSON.parse(storedUser);
-                  parsedUser.avatar = result.user?.avatar?.url || imageData;
-                  localStorage.setItem('user', JSON.stringify(parsedUser));
-                  sessionStorage.setItem('temp_avatar', imageData);
-                }
-              }
-              
-              return; // Success
-            }
-          } catch {
-            // Server update failed
-          }
+          // ✅ 2. Update Redux store immediately
+          dispatch(updateUser({ 
+            avatar: imageData,
+          }));
           
-          // Fallback: Update local storage
+          // ✅ 3. Update localStorage
           if (typeof window !== 'undefined') {
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
@@ -115,7 +93,29 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
             }
           }
           
-          toast.success('Avatar updated locally!');
+          // ✅ 4. Send to server using your existing mutation
+          try {
+            const result = await updateAvatar({ avatar: imageData }).unwrap();
+            
+            if (result.success) {
+              toast.success('Avatar updated successfully!');
+              
+              // Update Redux with server response if available
+              if (result.user) {
+                const serverAvatar = result.user.avatar?.url || imageData;
+                dispatch(updateUser({
+                  avatar: serverAvatar,
+                  name: result.user.name || user.name
+                }));
+                setCurrentAvatar(serverAvatar);
+              }
+            } else {
+              toast.error(result.message || 'Failed to update avatar');
+            }
+          } catch (error: any) {
+            console.error('Avatar update error:', error);
+            toast.error(error?.data?.message || 'Avatar update failed');
+          }
           
         } catch (error: any) {
           toast.error(error.message || 'Failed to update avatar');
@@ -141,43 +141,65 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
     if (name.trim() !== '' && name !== user.name) {
       setUploading(true);
       try {
-        const response = await fetch('https://kashi-learning-server.onrender.com/api/v1/update-user-info', {
-          method: 'PUT',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ name }),
-        });
+        // ✅ 1. Update Redux store immediately
+        dispatch(updateUser({ 
+          name: name,
+        }));
         
-        const result = await response.json();
+        // ✅ 2. Update localStorage
+        if (typeof window !== 'undefined') {
+          const storedUser = localStorage.getItem('user');
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            parsedUser.name = name;
+            localStorage.setItem('user', JSON.stringify(parsedUser));
+          }
+        }
         
-        if (response.ok && result.success) {
+        // ✅ 3. Send to server using your existing mutation
+        const result = await editProfile({ name }).unwrap();
+        
+        if (result.success) {
           toast.success('Profile updated successfully!');
           
-          // Update localStorage
+          // Update Redux with server response if available
+          if (result.user) {
+            const updatedAvatar = result.user.avatar?.url || currentAvatar;
+            dispatch(updateUser({
+              name: result.user.name || name,
+              avatar: updatedAvatar
+            }));
+            setCurrentAvatar(updatedAvatar);
+          }
+          
+          // Also update localStorage with fresh data
           if (typeof window !== 'undefined') {
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
               const parsedUser = JSON.parse(storedUser);
               parsedUser.name = name;
+              if (result.user?.avatar?.url) {
+                parsedUser.avatar = result.user.avatar.url;
+                setCurrentAvatar(result.user.avatar.url);
+              }
               localStorage.setItem('user', JSON.stringify(parsedUser));
             }
           }
-          
         } else {
           toast.error(result.message || 'Failed to update profile');
         }
         
       } catch (error: any) {
-        toast.error(error.message || 'Failed to update profile');
+        console.error('Profile update error:', error);
+        toast.error(error?.data?.message || 'Failed to update profile');
       } finally {
         setUploading(false);
       }
+    } else {
+      toast.error('Please enter a different name');
     }
   };
 
-  // ✅ SIMPLIFIED: Get avatar
   const getSafeAvatar = () => {
     return currentAvatar || avatarIcon.src;
   };
@@ -189,12 +211,10 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
       {/* Avatar Section */}
       <div className="relative group">
         <div className="relative w-[160px] h-[160px] mx-auto">
-          {/* Animated Gradient Border */}
           <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#37a39a] via-[#4f46e5] to-[#ec4899] bg-[length:400%_400%] animate-gradient-xy p-1">
             <div className="w-full h-full rounded-full bg-white dark:bg-gray-900"></div>
           </div>
 
-          {/* Image */}
           <div className="absolute inset-1 rounded-full overflow-hidden">
             <Image
               src={displayAvatar}
@@ -202,8 +222,8 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
               fill
               className="object-cover transition-transform duration-500 group-hover:scale-110"
               sizes="160px"
-              unoptimized={true} // ✅ CRITICAL: Force unoptimized for ALL images
-              onError={() => setImgError(true)}
+              unoptimized={true}
+              onError={() => setImgError(true)} // ✅ Fix: Use setter function
               priority={true}
             />
             {uploading && (
@@ -213,7 +233,6 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
             )}
           </div>
 
-          {/* File Input */}
           <input
             type="file"
             id="avatar"
@@ -224,7 +243,6 @@ const ProfileInfo: FC<Props> = ({ avatar, user }) => {
             disabled={uploading}
           />
 
-          {/* Camera Button */}
           <label htmlFor="avatar" className="absolute -bottom-1 -right-1 cursor-pointer">
             <div className={`w-11 h-11 bg-gradient-to-r from-[#37a39a] to-[#4f46e5] rounded-full flex items-center justify-center shadow-xl border-4 border-white dark:border-gray-900 transform hover:scale-110 transition-all duration-300 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
               {uploading ? (
