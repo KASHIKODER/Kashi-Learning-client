@@ -51,28 +51,52 @@ export default function RootLayout({
 }
 
 const Custom: FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isClient, setIsClient] = useState(false);
   const [hasToken, setHasToken] = useState(false);
   const [showLoader, setShowLoader] = useState(false);
 
+  // Set isClient to true when component mounts (client-side)
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    setHasToken(!!token);
+    setIsClient(true);
   }, []);
 
-  const { isLoading } = useLoadUserQuery(undefined, {
-    skip: !hasToken,
+  // Check for token only on client side
+  useEffect(() => {
+    if (isClient) {
+      const token = localStorage.getItem('token');
+      setHasToken(!!token);
+    }
+  }, [isClient]);
+
+  // Use the query only on client side and if token exists
+  const { isLoading, error, data } = useLoadUserQuery(undefined, {
+    skip: !isClient || !hasToken,
     refetchOnMountOrArgChange: false,
     refetchOnFocus: false,
     refetchOnReconnect: false,
   });
 
+  // Handle loader and errors
   useEffect(() => {
-    if (hasToken && isLoading) {
+    if (error) {
+      console.error('Error loading user:', error);
+      // Clear invalid token if 401 error
+      if ('status' in error && error.status === 401) {
+        localStorage.removeItem('token');
+        setHasToken(false);
+      }
+      setShowLoader(false);
+    } else if (isClient && hasToken && isLoading) {
       setShowLoader(true);
     } else {
       setShowLoader(false);
     }
-  }, [isLoading, hasToken]);
+  }, [isLoading, hasToken, isClient, error]);
+
+  // Don't render anything until we know if we're on client side
+  if (!isClient) {
+    return <Loader />; // Show loader during SSR
+  }
 
   return <>{showLoader ? <Loader /> : children}</>;
 };

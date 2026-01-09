@@ -1,21 +1,21 @@
 'use client';
 
-import React, { FC, useEffect, useState } from 'react';
+import React, { FC, useEffect, useState, useCallback } from 'react';
 import * as Yup from 'yup';
-import { AiOutlineEye, AiOutlineEyeInvisible, AiFillGithub } from 'react-icons/ai';
-import { FcGoogle } from 'react-icons/fc';
+import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 import { motion } from 'framer-motion';
-import { styles } from '../../../app/styles/style';
+import { styles } from '@/app/styles/style';
 import { useFormik } from 'formik';
 import { useRegisterMutation } from '@/redux/features/auth/authApi';
 import toast from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
+import { setToken } from '@/redux/features/auth/authSlice';
 
 type Props = {
   setOpen: (open: boolean) => void;
   setRoute?: (route: string) => void;
 };
 
-// ✅ Validation Schema
 const schema = Yup.object().shape({
   name: Yup.string().required('Please enter your name!'),
   email: Yup.string().email('Invalid email').required('Please enter your email!'),
@@ -26,36 +26,136 @@ const schema = Yup.object().shape({
 
 const Signup: FC<Props> = ({ setOpen, setRoute }) => {
   const [show, setShow] = useState(false);
-  const [register, { data, error, isLoading, isSuccess }] = useRegisterMutation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [register, { data, error, isLoading: rtkLoading }] = useRegisterMutation();
+  const dispatch = useDispatch();
 
-  // ✅ Handle mutation result (success & error)
+  // Clear old tokens on mount
   useEffect(() => {
-    if (isSuccess && data) {
-      toast.success(data.message || 'Registration successful');
-      setRoute?.('Verification');
-      // setOpen(false);
+    localStorage.removeItem('pending_email');
+    sessionStorage.removeItem('temp_activation_token');
+  }, []);
+
+  // Handle registration response
+  useEffect(() => {
+    console.log('🔄 Signup useEffect triggered:', { 
+      hasData: !!data, 
+      hasError: !!error, 
+      isLoading: rtkLoading 
+    });
+
+    if (data && data.activationToken) {
+      console.log('✅ Registration successful. Token:', data.activationToken.substring(0, 30) + '...');
+      
+      // 1. Store in Redux (immediate)
+      dispatch(setToken(data.activationToken));
+      
+      // 2. Store in localStorage (persistent)
+      localStorage.setItem('activation_token', data.activationToken);
+      
+      // 3. Store email for reference
+      const formEmail = localStorage.getItem('pending_email');
+      if (formEmail) {
+        localStorage.setItem('pending_email', formEmail);
+      }
+      
+      // 4. Store in sessionStorage (session-only)
+      sessionStorage.setItem('temp_activation_token', data.activationToken);
+      
+      toast.success(data.message || 'Registration successful! Check your email.');
+      
+      // Navigate to verification after short delay
+      const timer = setTimeout(() => {
+        if (setRoute) {
+          setRoute('Verification');
+        }
+        setOpen(false);
+      }, 800);
+      
+      return () => clearTimeout(timer);
     }
 
-    if (error && 'data' in error) {
-      const err = error as { data?: { message?: string } };
-      toast.error(err.data?.message || 'Something went wrong!');
+    if (error) {
+      console.error('🔴 Registration error:', error);
+      setIsSubmitting(false);
+      
+      let errorMsg = 'Registration failed!';
+      
+      if ('status' in error) {
+        if (error.status === 'TIMEOUT') {
+          errorMsg = 'Request timed out. Please try again.';
+        } else if (error.status === 'FETCH_ERROR') {
+          errorMsg = 'Network error. Check your connection.';
+        } else if (error.data && typeof error.data === 'object') {
+          const errorData = error.data as any;
+          errorMsg = errorData.message || errorData.error || errorMsg;
+        }
+      } else if ('data' in error && error.data) {
+        const errorData = error.data as any;
+        errorMsg = errorData.message || errorMsg;
+      }
+      
+      toast.error(errorMsg);
     }
-  }, [isSuccess, error, data, setOpen, setRoute]);
+  }, [data, error, rtkLoading, dispatch, setRoute, setOpen]);
 
-  // ✅ Formik Setup
+  // ✅ FIXED: Handle form submission
+  const handleSubmit = useCallback(async (values: { name: string; email: string; password: string }) => {
+    setIsSubmitting(true);
+    
+    // Clear any previous tokens
+    localStorage.removeItem('activation_token');
+    sessionStorage.removeItem('temp_activation_token');
+    
+    // Store email for reference
+    localStorage.setItem('pending_email', values.email);
+    
+    console.log('🔄 Submitting registration for:', values.email);
+    
+    try {
+      // Create a promise that rejects after 20 seconds
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Registration timeout after 20 seconds')), 20000);
+      });
+
+      // ✅ FIX: Properly call register with .unwrap()
+      const registrationPromise = register({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+      }).unwrap(); // This is CRITICAL!
+
+      // Race the promises
+      await Promise.race([
+        registrationPromise,
+        timeoutPromise
+      ]);
+
+      console.log('✅ Registration completed successfully');
+      
+    } catch (err: any) {
+      console.error('🔴 Registration submission error:', err);
+      
+      // Check if it's a timeout error
+      if (err.message === 'Registration timeout after 20 seconds') {
+        toast.error('Registration taking too long. Please try again.');
+        setIsSubmitting(false);
+      }
+      // Other errors are handled in the useEffect above
+    }
+  }, [register]);
+
+  // Formik setup
   const formik = useFormik({
     initialValues: { name: '', email: '', password: '' },
     validationSchema: schema,
-    onSubmit: async (values) => {
-      try {
-        await register(values).unwrap(); 
-      } catch (err) {
-        console.error('Registration failed:', err);
-      }
-    },
+    onSubmit: handleSubmit,
   });
 
-  const { errors, touched, values, handleChange, handleSubmit } = formik;
+  const { errors, touched, values, handleChange, handleSubmit: formikSubmit } = formik;
+  
+  // Combine loading states
+  const loading = rtkLoading || isSubmitting;
 
   return (
     <motion.div
@@ -68,7 +168,7 @@ const Signup: FC<Props> = ({ setOpen, setRoute }) => {
         Join to <span className="text-[#2190ff]">ELearning</span>
       </h1>
 
-      <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+      <form onSubmit={formikSubmit} className="mt-4 space-y-4">
         {/* Name */}
         <div>
           <label className={`${styles.label}`} htmlFor="name">
@@ -78,13 +178,18 @@ const Signup: FC<Props> = ({ setOpen, setRoute }) => {
             type="text"
             name="name"
             id="name"
-            placeholder="Your Good Name"
             value={values.name}
             onChange={handleChange}
-            className={`${errors.name && touched.name ? 'border-red-500' : 'border-gray-300'} ${styles.input}`}
+            disabled={loading}
+            placeholder="Your Good Name"
+            className={`${styles.input} ${
+              errors.name && touched.name 
+                ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-300 focus:border-[#2190ff] focus:ring-[#2190ff]'
+            } ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
           />
           {errors.name && touched.name && (
-            <span className="text-red-500 pt-2 block text-sm">{errors.name}</span>
+            <span className="text-red-500 text-sm block mt-1">{errors.name}</span>
           )}
         </div>
 
@@ -97,13 +202,18 @@ const Signup: FC<Props> = ({ setOpen, setRoute }) => {
             type="email"
             name="email"
             id="email"
-            placeholder="Mail@gmail.com"
             value={values.email}
             onChange={handleChange}
-            className={`${errors.email && touched.email ? 'border-red-500' : 'border-gray-300'} ${styles.input}`}
+            disabled={loading}
+            placeholder="Mail@gmail.com"
+            className={`${styles.input} ${
+              errors.email && touched.email 
+                ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-300 focus:border-[#2190ff] focus:ring-[#2190ff]'
+            } ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
           />
           {errors.email && touched.email && (
-            <span className="text-red-500 pt-2 block text-sm">{errors.email}</span>
+            <span className="text-red-500 text-sm block mt-1">{errors.email}</span>
           )}
         </div>
 
@@ -116,92 +226,69 @@ const Signup: FC<Props> = ({ setOpen, setRoute }) => {
             type={show ? 'text' : 'password'}
             name="password"
             id="password"
-            placeholder="••••••••"
             value={values.password}
             onChange={handleChange}
-            className={`${errors.password && touched.password ? 'border-red-500' : 'border-gray-300'} ${styles.input}`}
+            disabled={loading}
+            placeholder="••••••••"
+            className={`${styles.input} ${
+              errors.password && touched.password 
+                ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-300 focus:border-[#2190ff] focus:ring-[#2190ff]'
+            } ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
           />
-          <div
-            className="absolute right-3 top-[42px] cursor-pointer text-gray-600 dark:text-gray-300 hover:text-[#2190ff]"
+          <button
+            type="button"
             onClick={() => setShow(!show)}
+            disabled={loading}
+            className="absolute right-3 top-[42px] text-gray-600 dark:text-gray-300 hover:text-[#2190ff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label={show ? "Hide password" : "Show password"}
           >
             {show ? <AiOutlineEye size={20} /> : <AiOutlineEyeInvisible size={20} />}
-          </div>
+          </button>
           {errors.password && touched.password && (
-            <span className="text-red-500 pt-2 block text-sm">{errors.password}</span>
+            <span className="text-red-500 text-sm block mt-1">{errors.password}</span>
           )}
         </div>
 
-        {/* Remember me + Forgot */}
-        <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-            <input type="checkbox" className="accent-[#2190ff]" />
-            Remember me
-          </label>
-          <button
-            type="button"
-            className="text-[#2190ff] hover:underline"
-            onClick={() => setRoute?.('Forgot-Password')}
-          >
-            Forgot Password?
-          </button>
-        </div>
-
-        {/* Submit */}
+        {/* Submit Button */}
         <button
           type="submit"
-          disabled={isLoading}
-          className={`${styles.button} transition-all duration-300 hover:bg-[#1a7ae0] disabled:opacity-70`}
+          disabled={loading}
+          className={`${styles.button} w-full h-12 font-medium ${
+            loading 
+              ? 'opacity-70 cursor-not-allowed' 
+              : 'hover:bg-[#1a7ae0] active:scale-[0.98] transition-transform'
+          }`}
         >
-          {isLoading ? (
-            <motion.div
-              className="flex items-center justify-center gap-2"
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 1 }}
-            >
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+          {loading ? (
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               Signing up...
-            </motion.div>
+            </div>
           ) : (
             'Sign Up'
           )}
         </button>
 
-        {/* Divider */}
-        <div className="flex items-center justify-center mt-6">
-          <div className="h-[1px] w-1/3 bg-gray-300 dark:bg-gray-600" />
-          <span className="px-2 text-gray-500 dark:text-gray-400 text-sm">OR</span>
-          <div className="h-[1px] w-1/3 bg-gray-300 dark:bg-gray-600" />
+        {/* Status Info */}
+        <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm">
+          <p className="font-medium mb-1">Status:</p>
+          <div className="space-y-1">
+            <p className={loading ? 'text-yellow-600' : data ? 'text-green-600' : 'text-gray-600'}>
+              {loading ? '⏳ Processing...' : data ? '✅ Registration successful' : '🟢 Ready to submit'}
+            </p>
+            {data?.activationToken && (
+              <p className="text-green-600 text-xs">
+                Token received ({data.activationToken.length} chars)
+              </p>
+            )}
+            {error && (
+              <p className="text-red-600 text-xs">
+                Error: {('status' in error ? error.status : 'Unknown error')}
+              </p>
+            )}
+          </div>
         </div>
-
-        {/* Social SignUp */}
-        <div className="flex items-center justify-center gap-4 mt-4">
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="cursor-pointer bg-white dark:bg-slate-700 rounded-full shadow p-2"
-          >
-            <FcGoogle size={28} />
-          </motion.div>
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="cursor-pointer bg-white dark:bg-slate-700 rounded-full shadow p-2"
-          >
-            <AiFillGithub size={28} className="text-black dark:text-white" />
-          </motion.div>
-        </div>
-
-        {/* Login link */}
-        <p className="text-center text-sm text-gray-700 dark:text-gray-300 mt-6">
-          Already have an account?{' '}
-          <span
-            className="text-[#2190ff] hover:underline cursor-pointer"
-            onClick={() => setRoute?.('Login')}
-          >
-            Sign In
-          </span>
-        </p>
       </form>
     </motion.div>
   );

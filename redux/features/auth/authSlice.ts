@@ -5,7 +5,6 @@ export interface User {
   _id?: string;
   name?: string;
   email?: string;
-  // Make avatar flexible
   avatar?: string | { public_id?: string; url?: string };
   role?: string;
   isVerified?: boolean;
@@ -101,6 +100,6 @@ export const {
   userLoggedIn, 
   userLoggedOut, 
   setToken,
-  updateUser // Don't forget to export it
+  updateUser
 } = authSlice.actions;
 export default authSlice.reducer;

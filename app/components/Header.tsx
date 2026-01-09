@@ -72,10 +72,9 @@ const HeaderComponent: FC<Props> = ({ activeItem, setOpen, route, open, setRoute
 
   // 🔹 Logout handler
   const handleLogout = async () => {
-    await logOutMutation().unwrap(); // toast handled inside authApi
+    await logOutMutation().unwrap(); 
   };
 
-  // 🚨 Only render on client to prevent hydration issues
   if (!mounted) return null;
 
   return (
@@ -91,7 +90,7 @@ const HeaderComponent: FC<Props> = ({ activeItem, setOpen, route, open, setRoute
             href="/"
             className="text-[28px] font-Poppins font-[700] text-[#1e293b] dark:text-[#f8fafc] tracking-wide"
           >
-            ELearning
+            Kashi-Learning
           </Link>
 
           <div className="flex items-center gap-4">

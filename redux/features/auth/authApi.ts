@@ -31,25 +31,37 @@ export const authApi = apiSlice.injectEndpoints({
       async onQueryStarted(arg, { queryFulfilled, dispatch }) {
         try {
           const result = await queryFulfilled;
-          dispatch(
-            userRegistration({
-              token: result.data.activationToken,
-            })
-          );
-        } catch (err: unknown) {
-          let message = "Registration failed";
-          if (err && typeof err === "object" && "error" in err) {
-            const error = err as { error?: { data?: { message?: string } } };
-            message = error.error?.data?.message || message;
+          console.log('🔍 Register mutation - Response:', {
+            activationToken: result.data.activationToken,
+            hasToken: !!result.data.activationToken,
+            tokenLength: result.data.activationToken?.length
+          });
+
+          if (result.data.activationToken) {
+            // Save to Redux
+            dispatch(
+              userRegistration({
+                token: result.data.activationToken,
+              })
+            );
+            localStorage.setItem('activation_token', result.data.activationToken);
+            console.log('✅ Token saved to Redux');
+          } else {
+            console.error('❌ No activationToken in backend response');
           }
-          console.error(message);
+        } catch (err: any) {
+          console.error('🔴 Registration mutation error details:', {
+            status: err?.error?.status,
+            message: err?.error?.data?.message,
+            data: err?.error?.data
+          });
         }
       },
     }),
 
-    activation: builder.mutation<ActivationResponse, { 
-      activation_token: string; 
-      activation_code: string; 
+    activation: builder.mutation<ActivationResponse, {
+      activation_token: string;
+      activation_code: string;
     }>({
       query: ({ activation_token, activation_code }) => ({
         url: "activate-user",
@@ -85,10 +97,10 @@ export const authApi = apiSlice.injectEndpoints({
       },
     }),
 
-    socialAuth: builder.mutation<LoginResponse, { 
-      email: string; 
-      name: string; 
-      avatar?: string; 
+    socialAuth: builder.mutation<LoginResponse, {
+      email: string;
+      name: string;
+      avatar?: string;
     }>({
       query: ({ email, name, avatar }) => ({
         url: "social-auth",
@@ -99,7 +111,7 @@ export const authApi = apiSlice.injectEndpoints({
       async onQueryStarted(arg, { queryFulfilled, dispatch }) {
         try {
           const result = await queryFulfilled;
-          
+
           dispatch(
             userLoggedIn({
               accessToken: result.data.activationToken,
@@ -108,29 +120,29 @@ export const authApi = apiSlice.injectEndpoints({
           );
         } catch (err: unknown) {
           console.log("🔴 Social Auth Full Error Object:", err);
-          
+
           let message = "Social Auth failed";
-          
+
           if (err && typeof err === "object") {
             // Check for specific RTK Query error structure
             if ("error" in err) {
-              const rtkError = err as { 
-                error?: { 
+              const rtkError = err as {
+                error?: {
                   status?: number;
                   data?: { message?: string };
                   name?: string;
-                } 
+                }
               };
-              
+
               console.log("RTK Error Details:", {
                 status: rtkError.error?.status,
                 data: rtkError.error?.data,
                 name: rtkError.error?.name
               });
-              
+
               if (rtkError.error?.name === "FETCH_ERROR") {
                 message = "Network error - cannot reach server";
-              } 
+              }
               else if (rtkError.error?.status === 404) {
                 message = "Endpoint not found (404)";
               }
@@ -145,7 +157,7 @@ export const authApi = apiSlice.injectEndpoints({
               }
             }
           }
-          
+
           console.error("Social Auth Error:", message);
         }
       },

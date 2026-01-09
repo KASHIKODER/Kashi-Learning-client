@@ -22,18 +22,14 @@ interface LoadUserResponse {
   user: ApiUser;
 }
 
-// ✅ Simple base query without custom timeout
-const baseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_SERVER_URI,
-  credentials: "include",
-  // Note: fetchBaseQuery doesn't have a timeout option
-  // Timeout is handled by browser/network by default
-});
-
+// ✅ SIMPLE: Just basic fetchBaseQuery
 export const apiSlice = createApi({
   reducerPath: "api",
-  baseQuery: baseQuery,
-  refetchOnMountOrArgChange: true, // Changed to true for better UX
+  baseQuery: fetchBaseQuery({
+    baseUrl: process.env.NEXT_PUBLIC_SERVER_URI,
+    credentials: "include",
+  }),
+  refetchOnMountOrArgChange: true,
   tagTypes: ["Courses", "User"],
   endpoints: (builder) => ({
     refreshToken: builder.query<LoadUserResponse, void>({
@@ -73,26 +69,18 @@ export const apiSlice = createApi({
             user: userData,
           }));
           
-        } catch (err: unknown) {
-          if (err && typeof err === "object") {
-            const errorObj = err as {
-              error?: {
-                status?: number;
-                data?: { message?: string };
-              };
-            };
-
-            if (errorObj.error?.status === 401) {
-              if (typeof window !== 'undefined') {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-              }
-              dispatch(userLoggedOut());
-            }
+        } catch (err: any) {
+          console.error('Load user error:', err);
+          
+          // Logout on any error for now (simplify)
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
           }
+          dispatch(userLoggedOut());
         }
       },
-      keepUnusedDataFor: 60, // Keep data for 60 seconds
+      keepUnusedDataFor: 60,
     }),
   }),
 });
