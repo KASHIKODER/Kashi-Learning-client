@@ -5,11 +5,11 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { VscWorkspaceTrusted } from 'react-icons/vsc';
 import { useActivationMutation } from '@/redux/features/auth/authApi';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/redux/store';
+import { setToken } from '@/redux/features/auth/authSlice';
 
 type Props = {
-  setOpen: (open: boolean) => void;
   setRoute: (route: string) => void;
 };
 
@@ -20,12 +20,12 @@ type VerifyNumber = {
   '3': string;
 };
 
-const Verification: FC<Props> = ({ setOpen, setRoute }) => {
-  // Get token from multiple sources
-  const { token: reduxToken } = useSelector((state: RootState) => state.auth);
+const Verification: FC<Props> = ({ setRoute }) => {
+  const dispatch = useDispatch();
+  const { token } = useSelector((state: RootState) => state.auth);
   const [activation, { isSuccess, error, isLoading }] = useActivationMutation();
   const [invalidError, setInvalidError] = useState(false);
-  const [verificationError, setVerificationError] = useState('');
+  const [checkingToken, setCheckingToken] = useState(true);
 
   const inputRefs = [
     useRef<HTMLInputElement>(null),
@@ -41,158 +41,114 @@ const Verification: FC<Props> = ({ setOpen, setRoute }) => {
     3: '',
   });
 
-  // ✅ FIX: Handle activation response
+  // Check if token exists when component mounts
+  useEffect(() => {
+    if (token && token.trim() !== '') {
+      console.log('✅ Token found in Redux:', token.substring(0, 20) + '...');
+      setCheckingToken(false);
+    } else {
+      // Try to get token from localStorage as fallback
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
+        console.log('🔍 Token found in localStorage, updating Redux...');
+        dispatch(setToken(storedToken));
+        setCheckingToken(false);
+      } else {
+        toast.error("No verification token found. Please sign up again.");
+        setRoute('Signup');
+      }
+    }
+  }, [token, dispatch, setRoute]);
+
+  // Handle activation response
   useEffect(() => {
     if (isSuccess) {
-      toast.success('Account activated successfully!');
-      
-      // Clear stored tokens
-      localStorage.removeItem('activation_token');
-      localStorage.removeItem('pending_email');
-      sessionStorage.removeItem('temp_activation_token');
-      
-      setRoute('Login');
-      setOpen(false);
+      toast.success("Account Activated Successfully");
+      setRoute("Login");
     }
-
     if (error) {
-      console.error('🔴 Activation error:', error);
-      
-      let errorMsg = 'Activation failed!';
-      
-      if ('data' in error && error.data) {
-        const errorData = error.data as any;
-        if (errorData.message) {
-          errorMsg = errorData.message;
-          
-          // Handle specific errors
-          if (errorData.message.includes('expired') || errorData.message.includes('Invalid')) {
-            errorMsg = 'Activation token expired. Please register again.';
-            localStorage.removeItem('activation_token');
-            localStorage.removeItem('pending_email');
-            setRoute('Signup');
-            setOpen(true);
-          }
-        }
-      } else if ('status' in error && error.status === 'TIMEOUT') {
-        errorMsg = 'Activation timeout. Please try again.';
+      if ("data" in error) {
+        const errorData = error as any;
+        toast.error(errorData.data?.message || 'Something went wrong!');
+        setInvalidError(true);
+      } else {
+        toast.error('An error occurred');
       }
-      
-      toast.error(errorMsg);
-      setVerificationError(errorMsg);
     }
-  }, [isSuccess, error, setRoute, setOpen]);
+  }, [isSuccess, error, setRoute]);
 
-  // ✅ FIX: Get token from multiple reliable sources
-  const getActivationToken = () => {
-    // 1. Check Redux first
-    if (reduxToken) {
-      console.log('✅ Using token from Redux');
-      return reduxToken;
-    }
-    
-    // 2. Check localStorage (primary storage)
-    const localStorageToken = localStorage.getItem('activation_token');
-    if (localStorageToken) {
-      console.log('✅ Using token from localStorage');
-      return localStorageToken;
-    }
-    
-    // 3. Check sessionStorage
-    const sessionStorageToken = sessionStorage.getItem('temp_activation_token');
-    if (sessionStorageToken) {
-      console.log('✅ Using token from sessionStorage');
-      return sessionStorageToken;
-    }
-    
-    // 4. Check old token key
-    const oldToken = localStorage.getItem('token');
-    if (oldToken) {
-      console.log('✅ Using token from old localStorage key');
-      return oldToken;
-    }
-    
-    console.error('❌ No token found anywhere');
-    return null;
+  const getVerifyNumberKey = (index: number): keyof VerifyNumber => {
+    return index.toString() as keyof VerifyNumber;
   };
 
   const handleInputChange = (index: number, value: string) => {
     setInvalidError(false);
-    setVerificationError('');
-    
-    // Only allow numbers
-    if (value && !/^\d$/.test(value)) return;
-    
-    const newVerifyNumber = { ...verifyNumber, [index]: value };
+
+    // Allow only numeric input
+    const numericValue = value.replace(/\D/g, '');
+
+    const key = getVerifyNumberKey(index);
+    const newVerifyNumber = { ...verifyNumber, [key]: numericValue };
     setVerifyNumber(newVerifyNumber);
 
-    // Auto-focus next/previous
-    if (value === '' && index > 0) {
+    // Auto move focus
+    if (numericValue === '' && index > 0) {
       inputRefs[index - 1].current?.focus();
-    } else if (value.length === 1 && index < 3) {
+    } else if (numericValue.length === 1 && index < 3) {
       inputRefs[index + 1].current?.focus();
     }
   };
 
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Handle backspace
+    if (e.key === 'Backspace' && verifyNumber[getVerifyNumberKey(index)] === '' && index > 0) {
+      inputRefs[index - 1].current?.focus();
+    }
+  };
+
   const verificationHandler = async () => {
-    const verificationCode = Object.values(verifyNumber).join('');
+    const verificationCode = Object.values(verifyNumber).join("");
+    
+    // Debug logs
+    console.log('🔍 Verification Code:', verificationCode);
+    console.log('🔍 Current Token:', token);
     
     if (verificationCode.length !== 4) {
-      toast.error('Please enter all 4 digits');
       setInvalidError(true);
+      toast.error("Please enter a 4-digit verification code");
       return;
     }
 
-    // Get activation token
-    const activationToken = getActivationToken();
-    
-    if (!activationToken) {
-      toast.error('No activation token found. Please register again.');
+    if (!token || token.trim() === '') {
+      toast.error("No activation token found. Please sign up again.");
       setRoute('Signup');
-      setOpen(true);
       return;
     }
 
-    console.log('🔄 Activating with token:', activationToken.substring(0, 30) + '...');
-    console.log('🔄 Verification code:', verificationCode);
-
+    console.log('🚀 Sending activation request with token:', token.substring(0, 20) + '...');
+    
     try {
-      // Manual timeout for activation
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Activation timeout')), 15000);
-      });
-
-      const activationPromise = activation({
-        activation_token: activationToken,
+      await activation({
+        activation_token: token,
         activation_code: verificationCode,
-      });
-
-      await Promise.race([activationPromise, timeoutPromise]);
-      
+      }).unwrap();
     } catch (err: any) {
-      console.error('🔴 Activation error:', err);
-      
-      if (err.message === 'Activation timeout') {
-        toast.error('Activation timeout. Please try again.');
-      }
+      console.error('Activation error:', err);
+      // Error is already handled in the useEffect above
     }
   };
 
-  // Handle paste
-  const handlePaste = (e: React.ClipboardEvent) => {
-    const pastedData = e.clipboardData.getData('text').slice(0, 4);
-    if (/^\d{4}$/.test(pastedData)) {
-      const digits = pastedData.split('');
-      const newVerifyNumber: VerifyNumber = {
-        0: digits[0] || '',
-        1: digits[1] || '',
-        2: digits[2] || '',
-        3: digits[3] || '',
-      };
-      setVerifyNumber(newVerifyNumber);
-      inputRefs[3].current?.focus();
-    }
-  };
+  // Show loading while checking token
+  if (checkingToken) {
+    return (
+      <div className="w-full max-w-md mx-auto backdrop-blur-lg bg-white/30 dark:bg-slate-800/30 p-8 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2190ff] mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">Loading verification...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -200,91 +156,77 @@ const Verification: FC<Props> = ({ setOpen, setRoute }) => {
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      onPaste={handlePaste}
     >
       <h1 className={`${styles.title} text-center`}>
         Verify Your <span className="text-[#2190ff]">Account</span>
       </h1>
 
       <div className="w-full flex items-center justify-center mt-6">
-        <div className="w-[85px] h-[85px] rounded-full bg-[#2190ff] flex items-center justify-center shadow-lg">
+        <motion.div
+          className="w-[85px] h-[85px] rounded-full bg-[#2190ff] flex items-center justify-center shadow-lg"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+        >
           <VscWorkspaceTrusted size={42} className="text-white" />
-        </div>
+        </motion.div>
       </div>
-
-      <p className="text-center mt-6 text-gray-600 dark:text-gray-300">
-        Enter the 4-digit code sent to your email
-      </p>
 
       <div className="mt-10 flex items-center justify-center gap-4">
         {Object.keys(verifyNumber).map((key, index) => (
-          <input
+          <motion.input
             key={key}
             type="text"
             inputMode="numeric"
-            pattern="\d*"
-            maxLength={1}
+            pattern="[0-9]*"
             ref={inputRefs[index]}
+            maxLength={1}
             value={verifyNumber[key as keyof VerifyNumber]}
             onChange={(e) => handleInputChange(index, e.target.value)}
-            className={`w-[65px] h-[65px] text-center text-2xl font-bold rounded-xl outline-none border-2 transition-all duration-300
-              ${invalidError || verificationError
-                ? 'border-red-500 bg-red-50 dark:bg-red-950 animate-shake'
-                : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:border-[#2190ff] focus:ring-2 focus:ring-[#2190ff]/30'
-              } dark:text-white`}
+            onKeyDown={(e) => handleKeyDown(index, e)}
+            className={`w-[60px] h-[60px] text-center text-[22px] font-semibold rounded-xl outline-none border-2 transition-all duration-300
+              ${invalidError
+                ? 'border-red-500 bg-red-50 dark:bg-red-950'
+                : 'border-gray-400 dark:border-gray-500 bg-transparent focus:border-[#2190ff]'
+              } dark:text-white text-gray-900`}
             disabled={isLoading}
           />
         ))}
       </div>
 
-      {verificationError && (
-        <p className="text-center mt-4 text-red-500 text-sm">{verificationError}</p>
+      {invalidError && (
+        <p className="text-center text-red-500 mt-4 text-sm">
+          Please enter a valid 4-digit verification code
+        </p>
       )}
 
       <div className="w-full flex justify-center mt-10">
-        <button
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          disabled={isLoading}
+          className={`${styles.button} px-10 py-3 rounded-xl font-semibold shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed`}
           onClick={verificationHandler}
-          disabled={isLoading || Object.values(verifyNumber).join('').length !== 4}
-          className={`${styles.button} px-10 py-3 rounded-xl font-semibold shadow-md transition-all ${
-            isLoading || Object.values(verifyNumber).join('').length !== 4
-              ? 'opacity-50 cursor-not-allowed'
-              : 'hover:bg-[#1a7ae0]'
-          }`}
         >
           {isLoading ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               Verifying...
             </div>
           ) : (
             'Verify OTP'
           )}
-        </button>
+        </motion.button>
       </div>
 
-      {/* Token Debug Info */}
-      <div className="mt-8 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs">
-        <p className="font-semibold mb-2">Token Sources:</p>
-        <div className="space-y-1">
-          <p>Redux: {reduxToken ? '✅ Available' : '❌ Not found'}</p>
-          <p>LocalStorage: {localStorage.getItem('activation_token') ? '✅ Available' : '❌ Not found'}</p>
-          <p>SessionStorage: {sessionStorage.getItem('temp_activation_token') ? '✅ Available' : '❌ Not found'}</p>
-          <p>Pending Email: {localStorage.getItem('pending_email') || 'None'}</p>
-          <p>Code Entered: {Object.values(verifyNumber).join('') || 'Empty'}</p>
-        </div>
-      </div>
-
-      <div className="text-center pt-8">
-        <span className="text-gray-600 dark:text-gray-300">
-          Go back to{' '}
-          <button
-            onClick={() => setRoute('Login')}
-            className="text-[#2190ff] hover:underline ml-1"
-          >
-            Sign in
-          </button>
+      <h5 className="text-center pt-8 font-Poppins text-[15px] text-gray-700 dark:text-gray-300">
+        Go back to Sign in?{' '}
+        <span
+          className="text-[#2190ff] pl-1 cursor-pointer hover:underline"
+          onClick={() => setRoute('Login')}
+        >
+          Sign in
         </span>
-      </div>
+      </h5>
     </motion.div>
   );
 };
