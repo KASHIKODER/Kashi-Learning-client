@@ -1,6 +1,11 @@
 # dependencies
 node_modules/
 
-.env/
 # Next.js build
 .next/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
